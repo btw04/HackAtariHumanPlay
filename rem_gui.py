@@ -37,7 +37,9 @@ class Renderer:
         no_render: list = [],
         variant: int = 0,
         difficulty: int = 0,
+        fullscreen: bool = False,
     ):
+        self.fullscreen = fullscreen
         self.running = None
         self.env = HackAtari(
             env_name,
@@ -88,7 +90,12 @@ class Renderer:
         window_height = min(self.env_render_shape[1], screen_height)
         window_size = (window_width, window_height)
 
-        self.window = pygame.display.set_mode(window_size, pygame.RESIZABLE)
+        # Use fullscreen if specified, otherwise windowed mode
+        if self.fullscreen:
+            self.window = pygame.display.set_mode((screen_width, screen_height), pygame.FULLSCREEN)
+        else:
+            self.window = pygame.display.set_mode(window_size)
+
         self.clock = pygame.time.Clock()
         self.ram_cell_id_font = pygame.font.SysFont("Pixel12x10", 25)
         self.ram_cell_value_font = pygame.font.SysFont("Pixel12x10", 30)
@@ -118,6 +125,10 @@ class Renderer:
         else:
             self.scaled_cell_width = RAM_CELL_WIDTH
             self.scaled_cell_height = RAM_CELL_HEIGHT
+
+    def toggle_fullscreen(self):
+        self.fullscreen = not self.fullscreen
+        self._init_pygame(self.current_frame)
 
     def run(self):
         self.running = True
@@ -175,6 +186,9 @@ class Renderer:
                         self._decrement_ram_value_at(cell_idx)
 
             elif event.type == pygame.KEYDOWN:  # keyboard key pressed
+                if event.key == pygame.K_F11:  # 'F11' key toggles fullscreen
+                    self.toggle_fullscreen()
+
                 if event.key == pygame.K_p:  # 'P': pause/resume
                     self.paused = not self.paused
 
@@ -466,6 +480,9 @@ if __name__ == "__main__":
         help="Cells to not render.",
         nargs="+",
     )
+    parser.add_argument(
+        "-f", "--fullscreen", action="store_true", help="Run in fullscreen mode."
+    )
 
     args = parser.parse_args()
 
@@ -481,6 +498,7 @@ if __name__ == "__main__":
         args.no_render,
         args.game_mode,
         args.difficulty,
+        args.fullscreen
     )
     if args.load_state:
         with open(args.load_state, "rb") as f:
