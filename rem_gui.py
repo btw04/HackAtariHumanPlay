@@ -16,7 +16,6 @@ identify the values that belong to a GameObject.
 """
 
 RAM_RENDER_WIDTH = 1000
-RAM_N_COLS = 8
 RAM_CELL_WIDTH = 115
 RAM_CELL_HEIGHT = 45
 
@@ -92,7 +91,9 @@ class Renderer:
 
         # Use fullscreen if specified, otherwise windowed mode
         if self.fullscreen:
-            self.window = pygame.display.set_mode((screen_width, screen_height), pygame.FULLSCREEN)
+            self.window = pygame.display.set_mode(
+                (screen_width, screen_height), pygame.FULLSCREEN
+            )
         else:
             self.window = pygame.display.set_mode(window_size)
 
@@ -498,7 +499,7 @@ if __name__ == "__main__":
         args.no_render,
         args.game_mode,
         args.difficulty,
-        args.fullscreen
+        args.fullscreen,
     )
     if args.load_state:
         with open(args.load_state, "rb") as f:
