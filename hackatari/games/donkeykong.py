@@ -1,4 +1,3 @@
-
 LVL_NUM = 0
 
 init_ram = [

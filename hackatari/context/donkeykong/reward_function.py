@@ -1,4 +1,3 @@
-
 goRight = True
 onLetterUp = False
 onLetterDown = False
