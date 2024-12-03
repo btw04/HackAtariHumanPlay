@@ -105,8 +105,7 @@ class Renderer:
 
         # Calculate rows needed and check if they fit within the height
         rows_needed = (total_cells + self.RAM_N_COLS - 1) // self.RAM_N_COLS
-        max_rows = (window_height // (RAM_CELL_HEIGHT + 10))
-
+        max_rows = window_height // (RAM_CELL_HEIGHT + 10)
 
         if rows_needed > max_rows:
             # Scale down cell dimensions proportionally to fit
@@ -114,12 +113,11 @@ class Renderer:
             self.scaled_cell_width = int(RAM_CELL_WIDTH * scale_factor)
             self.scaled_cell_height = int(RAM_CELL_HEIGHT * scale_factor)
 
-            # Recalculate the number of columns based on the scaled width
+            # Recalculate the number of columns based on the scaled width and available window width
             self.RAM_N_COLS = max(1, window_width // (self.scaled_cell_width + 10))
         else:
             self.scaled_cell_width = RAM_CELL_WIDTH
             self.scaled_cell_height = RAM_CELL_HEIGHT
-
 
     def run(self):
         self.running = True
