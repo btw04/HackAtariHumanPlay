@@ -25,7 +25,7 @@ The modes are:
 | Command | Effect                                        |
 |---------|-----------------------------------------------|
 | d[r, l] | Set the drift direction "right" or "left"     |
-| s[0-2]  | Sets the strenght of the drift, 0 is no drift |
+| s[0-2]  | Sets the strength of the drift, 0 is no drift |
 
 ### Note: In Breakout, the drift will not work if human mode is enabled due to issues with the rendering.
 
@@ -34,7 +34,7 @@ The modes are:
 | Command | Effect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 |---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | sm[0-4] | 0 = default behavior. 1 = x-position of the shark is fixed at 105, which is directly below the enemy player - 2 = x-position of the shark is fixed at 25, which is directly below the player - 3 = the shark teleports from the left to the right and the other way around when x-position 25 or 105 is reached - 4 = the shark moves from the left to the right with a very high velocity. When reaching x-position 120 the shark is set back to x-position 1 and starts to move again in the same speed up way as described. |
-| fm[0-3] | = = default behavior. 1 = The x-position of the fish is changed. They are mainly on the player's side. 2 = The x-position of the fish is changed. They are mainly on the enemy's side. 3 = The x-position of the fish is changed. They are in the middle betwen  player and enemy.                                                                                                                                                                                                                                             |
+| fm[0-3] | 0 = default behavior. 1 = The x-position of the fish is changed. They are mainly on the player's side. 2 = The x-position of the fish is changed. They are mainly on the enemy's side. 3 = The x-position of the fish is changed. They are in the middle between player and enemy.                                                                                                                                                                                                                                             |
 
 ## Freeway:
 | Command | Effect                                                                                                                                                               |
@@ -60,25 +60,25 @@ The modes are:
 | dm      | Disable monkeys in the game             |
 | dc      | Disable the falling coconut in the game |
 | e       | Enable easy mode                        |
-| ra      | Rndom difficulty                        |
+| ra      | Random difficulty                       |
 
 ## MS Pacman
-| Command                 | Effect                                                            |
-|-------------------------|-------------------------------------------------------------------|
-| cg                      | Caged ghosts, ghosts will not leave the middle                    |
-| orange, cyan, pink, red | cages ghosts selectivly by color                                  |
-| npp[0-4]                | number of available power pills                                   |
-| eg                      | ghosts can always be eaten, power pills do nothing                |
-| i                       | inverted mode, eating a power pill maked the ghos dangerous again |
+| Command                 | Effect                                                                  |
+|-------------------------|-------------------------------------------------------------------------|
+| cg                      | Caged ghosts, ghosts will not leave the middle                          |
+| orange, cyan, pink, red | cages ghosts selectively by color                                       |
+| npp[0-4]                | number of available power pills                                         |
+| eg                      | ghosts can always be eaten, power pills do nothing                      |
+| i                       | inverted mode, eating a power pill will make the ghosts dangerous again |
 
 ## Seaquest
 | Command | Effect                           |
 |---------|----------------------------------|
 | o       | Set the oxygen to unlimited mode |
 | de      | disables all enemies             |
-| gr      | Enable graxity mode.             |
+| gr      | Enable gravity mode.             |
 
-### Note: If all enemies are disabled, stray projectiles can occure in certain situations which will still kill the player. We haven't found a fix for this.
+### Note: If all enemies are disabled, stray projectiles can occur in certain situations which will still kill the player. We haven't found a fix for this.
 
 
 ## Space Invaders:
