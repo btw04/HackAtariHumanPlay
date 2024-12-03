@@ -18,6 +18,8 @@ identify the values that belong to a GameObject.
 RAM_RENDER_WIDTH = 1000
 RAM_CELL_WIDTH = 115
 RAM_CELL_HEIGHT = 45
+RAM_ROW_PADDING = 10
+RAM_COLUMN_PADDING = 15
 
 
 class Renderer:
@@ -58,6 +60,7 @@ class Renderer:
             full_action_space=True,
         )
 
+        self.amount_ram_cells = len(self.env.unwrapped.ale.getRAM())
         self.env.reset(seed=42)
         self.current_frame = self.env.render()
         self._init_pygame(self.current_frame)
@@ -102,27 +105,23 @@ class Renderer:
         self.ram_cell_value_font = pygame.font.SysFont("Pixel12x10", 30)
 
         # Calculate available width and height for the RAM grid
-        window_width = self.window.get_width() - self.env_render_shape[0]
-        window_height = self.window.get_height()
+        ram_rects_width = self.window.get_width() - self.env_render_shape[0]
+        ram_rects_height = self.window.get_height()
 
         # Dynamically calculate columns based on window width
-        self.RAM_N_COLS = max(1, window_width // (RAM_CELL_WIDTH + 10))
-
-        # Calculate total number of RAM cells
-        total_cells = len(self.env.unwrapped.ale.getRAM())
+        self.RAM_N_COLS = max(1, ram_rects_width // (RAM_CELL_WIDTH + RAM_ROW_PADDING))
 
         # Calculate rows needed and check if they fit within the height
-        rows_needed = (total_cells + self.RAM_N_COLS - 1) // self.RAM_N_COLS
-        max_rows = window_height // (RAM_CELL_HEIGHT + 10)
+        rows_needed = (self.amount_ram_cells + self.RAM_N_COLS - 1) // self.RAM_N_COLS
+        max_rows = ram_rects_height // (RAM_CELL_HEIGHT + RAM_COLUMN_PADDING)
 
         if rows_needed > max_rows:
-            # Scale down cell dimensions proportionally to fit
+            rows_needed = (
+                self.amount_ram_cells + self.RAM_N_COLS - 1
+            ) // self.RAM_N_COLS
             scale_factor = max_rows / rows_needed
             self.scaled_cell_width = int(RAM_CELL_WIDTH * scale_factor)
             self.scaled_cell_height = int(RAM_CELL_HEIGHT * scale_factor)
-
-            # Recalculate the number of columns based on the scaled width and available window width
-            self.RAM_N_COLS = max(1, window_width // (self.scaled_cell_width + 10))
         else:
             self.scaled_cell_width = RAM_CELL_WIDTH
             self.scaled_cell_height = RAM_CELL_HEIGHT
@@ -343,7 +342,11 @@ class Renderer:
 
     def _render_hover(self):
         cell_idx = self._get_cell_under_mouse()
-        if cell_idx is not None and cell_idx != self.active_cell_idx:
+        if (
+            cell_idx is not None
+            and cell_idx != self.active_cell_idx
+            and cell_idx < self.amount_ram_cells
+        ):
             x, y, w, h = self._get_ram_cell_rect(cell_idx)
             hover_surface = pygame.Surface((w, h))
             hover_surface.set_alpha(60)
@@ -356,7 +359,7 @@ class Renderer:
         if x > self.ram_grid_anchor_left and y > self.ram_grid_anchor_top:
             col = (x - self.ram_grid_anchor_left) // (self.scaled_cell_width + 10)
             row = (y - self.ram_grid_anchor_top) // (self.scaled_cell_height + 10)
-            if col < self.RAM_N_COLS and row < len(self.env.unwrapped.ale.getRAM()):
+            if col < self.RAM_N_COLS and row < self.amount_ram_cells:
                 return row * self.RAM_N_COLS + col
         return None
 
