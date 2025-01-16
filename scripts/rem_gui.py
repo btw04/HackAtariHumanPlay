@@ -16,10 +16,9 @@ identify the values that belong to a GameObject.
 """
 
 RAM_RENDER_WIDTH = 1000
+RAM_N_COLS = 8
 RAM_CELL_WIDTH = 115
 RAM_CELL_HEIGHT = 45
-RAM_ROW_PADDING = 10
-RAM_COLUMN_PADDING = 15
 
 
 class Renderer:
@@ -37,11 +36,8 @@ class Renderer:
         color_swaps: dict,
         no_render: list = [],
         variant: int = 0,
-        difficulty: int = 0,
-        fullscreen: bool = False,
+        difficulty: int = 0
     ):
-        self.fullscreen = fullscreen
-        self.running = None
         self.env = HackAtari(
             env_name,
             modifs,
@@ -60,7 +56,6 @@ class Renderer:
             full_action_space=True,
         )
 
-        self.amount_ram_cells = len(self.env.unwrapped.ale.getRAM())
         self.env.reset(seed=42)
         self.current_frame = self.env.render()
         self._init_pygame(self.current_frame)
@@ -82,53 +77,14 @@ class Renderer:
         pygame.init()
         pygame.display.set_caption("OCAtari Environment")
         self.env_render_shape = sample_image.shape[:2]
-
-        screen_info = pygame.display.Info()
-        screen_width = screen_info.current_w
-        screen_height = screen_info.current_h
-
-        # Adjust window size proportionally to the screen size
-        window_width = min(self.env_render_shape[0] + RAM_RENDER_WIDTH, screen_width)
-        window_height = min(self.env_render_shape[1], screen_height)
-        window_size = (window_width, window_height)
-
-        # Use fullscreen if specified, otherwise windowed mode
-        if self.fullscreen:
-            self.window = pygame.display.set_mode(
-                (screen_width, screen_height), pygame.FULLSCREEN
-            )
-        else:
-            self.window = pygame.display.set_mode(window_size)
-
+        window_size = (
+            self.env_render_shape[0] + RAM_RENDER_WIDTH,
+            self.env_render_shape[1],
+        )
+        self.window = pygame.display.set_mode(window_size)
         self.clock = pygame.time.Clock()
         self.ram_cell_id_font = pygame.font.SysFont("Pixel12x10", 25)
         self.ram_cell_value_font = pygame.font.SysFont("Pixel12x10", 30)
-
-        # Calculate available width and height for the RAM grid
-        ram_rects_width = self.window.get_width() - self.env_render_shape[0]
-        ram_rects_height = self.window.get_height()
-
-        # Dynamically calculate columns based on window width
-        self.RAM_N_COLS = max(1, ram_rects_width // (RAM_CELL_WIDTH + RAM_ROW_PADDING))
-
-        # Calculate rows needed and check if they fit within the height
-        rows_needed = (self.amount_ram_cells + self.RAM_N_COLS - 1) // self.RAM_N_COLS
-        max_rows = ram_rects_height // (RAM_CELL_HEIGHT + RAM_COLUMN_PADDING)
-
-        if rows_needed > max_rows:
-            rows_needed = (
-                self.amount_ram_cells + self.RAM_N_COLS - 1
-            ) // self.RAM_N_COLS
-            scale_factor = max_rows / rows_needed
-            self.scaled_cell_width = int(RAM_CELL_WIDTH * scale_factor)
-            self.scaled_cell_height = int(RAM_CELL_HEIGHT * scale_factor)
-        else:
-            self.scaled_cell_width = RAM_CELL_WIDTH
-            self.scaled_cell_height = RAM_CELL_HEIGHT
-
-    def toggle_fullscreen(self):
-        self.fullscreen = not self.fullscreen
-        self._init_pygame(self.current_frame)
 
     def run(self):
         self.running = True
@@ -138,7 +94,7 @@ class Renderer:
                 action = self._get_action()
                 reward = self.env.step(action)[1]
                 if reward != 0:
-                    print(f"reward: {reward}")
+                    print(reward)
                     pass
                 self.current_frame = self.env.render().copy()
             self._render()
@@ -186,9 +142,6 @@ class Renderer:
                         self._decrement_ram_value_at(cell_idx)
 
             elif event.type == pygame.KEYDOWN:  # keyboard key pressed
-                if event.key == pygame.K_F11:  # 'F11' key toggles fullscreen
-                    self.toggle_fullscreen()
-
                 if event.key == pygame.K_p:  # 'P': pause/resume
                     self.paused = not self.paused
 
@@ -235,6 +188,9 @@ class Renderer:
                                     self.active_cell_idx, new_cell_value
                                 )
                         self._unselect_active_cell()
+
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_q: # Quit
+                    self.running = False
 
             elif event.type == pygame.KEYUP:  # keyboard key released
                 if [
@@ -332,21 +288,17 @@ class Renderer:
             self.window.blit(text, text_rect)
 
     def _get_ram_cell_rect(self, idx: int):
-        row = idx // self.RAM_N_COLS
-        col = idx % self.RAM_N_COLS
-        x = self.ram_grid_anchor_left + col * (self.scaled_cell_width + 10)
-        y = self.ram_grid_anchor_top + row * (self.scaled_cell_height + 10)
-        w = self.scaled_cell_width
-        h = self.scaled_cell_height
+        row = idx // RAM_N_COLS
+        col = idx % RAM_N_COLS
+        x = self.ram_grid_anchor_left + col * 120
+        y = self.ram_grid_anchor_top + row * 50
+        w = RAM_CELL_WIDTH
+        h = RAM_CELL_HEIGHT
         return x, y, w, h
 
     def _render_hover(self):
         cell_idx = self._get_cell_under_mouse()
-        if (
-            cell_idx is not None
-            and cell_idx != self.active_cell_idx
-            and cell_idx < self.amount_ram_cells
-        ):
+        if cell_idx is not None and cell_idx != self.active_cell_idx:
             x, y, w, h = self._get_ram_cell_rect(cell_idx)
             hover_surface = pygame.Surface((w, h))
             hover_surface.set_alpha(60)
@@ -357,10 +309,10 @@ class Renderer:
     def _get_cell_under_mouse(self):
         x, y = self.current_mouse_pos
         if x > self.ram_grid_anchor_left and y > self.ram_grid_anchor_top:
-            col = (x - self.ram_grid_anchor_left) // (self.scaled_cell_width + 10)
-            row = (y - self.ram_grid_anchor_top) // (self.scaled_cell_height + 10)
-            if col < self.RAM_N_COLS and row < self.amount_ram_cells:
-                return row * self.RAM_N_COLS + col
+            col = (x - self.ram_grid_anchor_left) // 120
+            row = (y - self.ram_grid_anchor_top) // 50
+            if col < RAM_N_COLS and row < 16:
+                return row * RAM_N_COLS + col
         return None
 
     def _unselect_active_cell(self):
@@ -484,9 +436,6 @@ if __name__ == "__main__":
         help="Cells to not render.",
         nargs="+",
     )
-    parser.add_argument(
-        "-f", "--fullscreen", action="store_true", help="Run in fullscreen mode."
-    )
 
     args = parser.parse_args()
 
@@ -502,7 +451,6 @@ if __name__ == "__main__":
         args.no_render,
         args.game_mode,
         args.difficulty,
-        args.fullscreen,
     )
     if args.load_state:
         with open(args.load_state, "rb") as f:

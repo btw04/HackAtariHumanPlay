@@ -2,6 +2,8 @@ from hackatari import HackAtari, HumanPlayable
 import numpy as np
 import cv2
 import pygame
+import torch
+import gymnasium as gym
 
 from ocatari.utils import load_agent
 
@@ -9,7 +11,8 @@ from ocatari.utils import load_agent
 def save_upsampled(rgb_arrays, k=4, l=4):
     augs = []
     for rgb_array in rgb_arrays:
-        aug = np.repeat(np.repeat(rgb_array, k, axis=0), l, axis=1)[:, :, [2, 1, 0]]
+        aug = np.repeat(np.repeat(rgb_array, k, axis=0),
+                        l, axis=1)[:, :, [2, 1, 0]]
         augs.append(aug)
     aug = np.average(augs, 0).astype(int)
     # plt.imshow(aug)
@@ -21,10 +24,43 @@ def save_upsampled(rgb_arrays, k=4, l=4):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="HackAtari run.py Argument Setter")
+    parser = argparse.ArgumentParser(
+        description="HackAtari run.py Argument Setter")
 
     parser.add_argument(
         "-g", "--game", type=str, default="Seaquest", help="Game to be run"
+    )
+
+    parser.add_argument(
+        "-obs",
+        "--obs_mode",
+        type=str,
+        default="obj",
+        help="The observation mode (ori, dqn, obj)",
+    )
+
+    parser.add_argument(
+        "-w",
+        "--window",
+        type=int,
+        default=4,
+        help="The buffer window size (default = 4)",
+    )
+
+    parser.add_argument(
+        "-f",
+        "--frameskip",
+        type=int,
+        default=4,
+        help="The frames skipped after each action + 1 (default = 4)",
+    )
+
+    parser.add_argument(
+        "-dp",
+        "--dopamine_pooling",
+        type=bool,
+        default=False,
+        help="Use dopamine like frameskipping (default = False)",
     )
 
     # Argument to enable gravity for the player.
@@ -82,6 +118,13 @@ if __name__ == "__main__":
         help="Path to the cleanrl trained agent to be loaded.",
     )
     parser.add_argument(
+        "-r",
+        "--render",
+        type=str,
+        default="human",
+        help="Should the video be displayed (human) or not (rbg_array, None)",
+    )
+    parser.add_argument(
         "-mo",
         "--game_mode",
         type=int,
@@ -108,11 +151,12 @@ if __name__ == "__main__":
             args.switch_modifs,
             args.switch_frame,
             args.reward_function,
-            args.game_mode,
-            args.difficulty,
-            render_mode="human",
+            game_mode=args.game_mode,
+            difficulty=args.difficulty,
+            render_mode=args.render,
+            obs_mode=args.obs_mode,
             mode="ram",
-            hud=True,
+            hud=False,
             render_oc_overlay=True,
             frameskip=1,
         )
@@ -124,21 +168,30 @@ if __name__ == "__main__":
             args.switch_modifs,
             args.switch_frame,
             args.reward_function,
-            args.game_mode,
-            args.difficulty,
-            render_mode="human",
+            dopamine_pooling=args.dopamine_pooling,
+            game_mode=args.game_mode,
+            difficulty=args.difficulty,
+            render_mode=args.render,
+            obs_mode=args.obs_mode,
             mode="ram",
-            hud=True,
+            hud=False,
             render_oc_overlay=True,
-            frameskip=1,
+            buffer_window_size=args.window,
+            frameskip=args.frameskip,
+            repeat_action_probability=0.25,
+            full_action_space=False,
         )
+
         pygame.init()
         if args.agent:
-            agent = load_agent(args.agent, env.action_space.n)
+            agent, policy = load_agent(
+                args.agent, env, "cpu")
             print(f"Loaded agents from {args.agent}")
+
         obs, _ = env.reset()
         done = False
         nstep = 1
+        tr = 0
         while not done:
             # Human intervention to end the run
             events = pygame.event.get()
@@ -147,16 +200,19 @@ if __name__ == "__main__":
                     event.type == pygame.KEYDOWN and event.key == pygame.K_q
                 ):  # 'Q': Quit
                     done = True
-            [print(x) for x in env.objects]
             if args.agent:
-                action = agent.draw_action(env.dqn_obs)
+                dqn_obs = torch.Tensor(obs).unsqueeze(0)
+                action = policy(dqn_obs)[0]
             else:
                 action = env.action_space.sample()
-            # import ipdb; ipdb.set_trace()
-            obs, reward, terminated, truncated, _ = env.step(action)
+            obs, reward, terminated, truncated, info = env.step(action)
+            tr += reward
             if reward and args.reward_function:
                 print(reward)
             if terminated or truncated:
+                print(info)
+                print(tr)
+                tr = 0
                 env.reset()
             if nstep == args.picture:
                 obss.append(obs)
@@ -164,8 +220,6 @@ if __name__ == "__main__":
                 exit()
             elif args.picture - nstep < 4:
                 obss.append(obs)
-            # if nstep % 100 == 0:
-            #     print(".", end="", flush=True)
             nstep += 1
             env.render()
 
