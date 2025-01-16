@@ -5,6 +5,8 @@ color_map = {1: 0, 2: 2, 3: 66, 4: 15, 5: 210, 6: 120, 7: 145, 8: 6}
 
 CARS_COLOR = 0
 
+car_states = {car: {"acceleration": 0.01, "speed": 0.2, "frames_stood_still": 0, "position": 0} for car in range(108, 118)}
+
 
 def modify_ram_for_color(self):
     """
@@ -84,6 +86,41 @@ def handle_car_stop_mode_3(self):
         set_ram_value(self, new_pos_down, 150)
 
 
+def handle_car_sin_acceleration(self):
+    """
+    Handles car sinus acceleration.
+    """
+    # 108 - 118 (RAM) are the car positions in RAM
+    # 33 - 42 (RAM) are somehow related to the car speed. Setting them to 0 removes the jittering.
+    # 160 (value in RAM) seems to be the maximum right position for the cars, 0 is the left position.
+
+    for i in range(33, 43):
+        self.set_ram(i, 0)
+
+    for car in range(108, 118):
+        state = car_states[car]
+        current_pos = state["position"]
+        speed = state["speed"]
+        frames_stood_still = state["frames_stood_still"]
+
+        if speed > 1.0 or frames_stood_still >= (1 / speed):
+            steps = int(frames_stood_still * speed)
+            new_pos = current_pos + steps
+            state["frames_stood_still"] -= steps / speed
+            state["speed"] = speed + state["acceleration"]
+        else:
+            new_pos = current_pos
+
+        if new_pos > 160:
+            new_pos = 0
+
+        state["position"] = new_pos
+        self.set_ram(car, new_pos)
+        state["frames_stood_still"] += 1
+
+
+
+
 def _modif_funcs(env, modifs):
     for mod in modifs:
         if mod.startswith("s"):
@@ -101,3 +138,9 @@ def _modif_funcs(env, modifs):
             global CARS_COLOR
             CARS_COLOR = color_map.get(mod_n, 256)
             env.step_modifs.append(modify_ram_for_color)
+        elif mod.startswith("a"):
+            mod_n = int(mod[-1])
+            if mod_n == 1:
+                env.step_modifs.append(handle_car_sin_acceleration)
+            else:
+                raise ValueError("Invalid modification number")
